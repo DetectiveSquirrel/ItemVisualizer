@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using ExileCore;
+using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.Elements.InventoryElements;
@@ -18,6 +19,8 @@ namespace ItemVisualizer
         public InventoryElement _InventoryElement;
         public StashElement _StashElement;
         public Inventory _VisibleStash;
+        public Element _hoverElement;
+        public RectangleF _hoverElementRec;
 
         public List<RarityContainer> RarityContainerItems;
 
@@ -69,12 +72,15 @@ namespace ItemVisualizer
                 {
                     var containerItemElement = containerItem.Element;
                     containerItemElement.Inflate(-4f, -4f);
-                    Graphics.DrawFrame(containerItemElement, containerItem.Color, 2);
+
+                    if (!_hoverElementRec.Intersects(containerItemElement))
+                        Graphics.DrawFrame(containerItemElement, containerItem.Color, 2);
 
                     if (containerItem.Corrupted)
                     {
                         containerItemElement.Inflate(-3f, -3f);
-                        Graphics.DrawFrame(containerItemElement, Settings.CorruptedBorder, 2);
+                        if (!_hoverElementRec.Intersects(containerItemElement))
+                            Graphics.DrawFrame(containerItemElement, Settings.CorruptedBorder, 2);
                     }
                 }
             }
@@ -86,13 +92,19 @@ namespace ItemVisualizer
 
         public void UpdateCommonlyUsedData()
         {
+            //reset
+            RarityContainerItems = new List<RarityContainer>();
+            _hoverElementRec = new RectangleF(0,0,0,0);
+
             _IngameUiElements = GameController.Game.IngameState.IngameUi;
             _InventoryElement = _IngameUiElements.InventoryPanel;
             _StashElement = _IngameUiElements.StashElement;
             _VisibleStash = _StashElement.VisibleStash;
 
-            //reset
-            RarityContainerItems = new List<RarityContainer>();
+            _hoverElement = GameController.Game.IngameState.UIHover;
+
+            if (_hoverElement.Tooltip != null && _hoverElement.Tooltip.IsVisibleLocal)
+                _hoverElementRec = _hoverElement.Tooltip.GetClientRect();
         }
 
 
@@ -126,6 +138,11 @@ namespace ItemVisualizer
                 }
 
             return itemList;
+        }
+
+        public void GetHoveredEntity()
+        {
+            _hoverElement = GameController.Game.IngameState.UIHover;
         }
 
         public List<RarityContainer> ConvertItemToContainerList(List<NormalInventoryItem> itemList) => itemList.Select(ConvertItemToContainer).ToList();
